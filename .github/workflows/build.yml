@@ -1,0 +1,82 @@
+name: Build
+
+# Every push and pull request: compile the registry into dist/ and keep it as an artifact.
+# Pushes to main (or Run workflow on main): publish dist/ to GitHub Pages, only if the repository is public AND the
+#   repository variable DEPLOY_PAGES is "true". Pages is public, so it's off unless you opt in.
+# Published releases: attach the single-file version and a zip of dist/ to the release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build dist/
+        run: node scripts/build.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+      # The public demo shows a bar linking to the landing page. It is set by the repository
+      # variable DEMO_LINK, so forks and the release downloads never show it.
+      - name: Add demo bar to the Pages copy
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && !github.event.repository.private && vars.DEPLOY_PAGES == 'true' && vars.DEMO_LINK != ''
+        env:
+          DEMO_LINK: ${{ vars.DEMO_LINK }}
+        run: |
+          printf '\nwindow.REGISTRY_CONFIG.demo = { href: %s };\n' "$(node -p 'JSON.stringify(process.env.DEMO_LINK)')" >> dist/registry.config.js
+      - name: Prepare Pages artifact
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && !github.event.repository.private && vars.DEPLOY_PAGES == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  pages:
+    needs: build
+    # One deploy at a time, in order, so a quick second push can't be overtaken.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && !github.event.repository.private && vars.DEPLOY_PAGES == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  release-assets:
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Attach files to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          (cd dist && zip -qr "../ai-use-case-registry-$TAG.zip" . -x ai-use-case-registry.html)
+          gh release upload "$TAG" dist/ai-use-case-registry.html "ai-use-case-registry-$TAG.zip" --repo "$GITHUB_REPOSITORY" --clobber

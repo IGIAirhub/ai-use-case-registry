@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use or adapt the AI Use Case Registry, please cite it as below."
+type: software
+title: "AI Use Case Registry"
+abstract: >-
+  An adoptable AI use case registry for the gambling sector. A short screening
+  classifies each AI use case by its potential impact on players into one of three
+  documentation tiers, and the registry collects the documentation that tier
+  requires. Front end only; organizations run it on their own infrastructure.
+authors:
+  - name: "AiR Hub, International Gaming Institute, University of Nevada, Las Vegas"
+    website: "https://www.igiairhub.com/"
+repository-code: "https://github.com/kasvegas/ai-use-case-registry"
+url: "https://www.igiairhub.com/registry/"
+license:
+  - Apache-2.0
+  - CC-BY-4.0
+keywords:
+  - AI governance
+  - AI transparency
+  - AI registry
+  - gambling
+  - responsible gambling
+  - risk classification

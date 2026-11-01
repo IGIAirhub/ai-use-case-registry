@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Use Case Registry</title>
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Your settings -->
+  <script src="registry.config.js"></script>
+
+  <!-- Content: one file per language (English first; it is the structural source) -->
+  <script src="content/registry.en.js"></script>
+  <script src="content/registry.es.js"></script>
+
+  <!-- App -->
+  <script src="app/config.js"></script>
+  <script src="app/i18n.js"></script>
+  <script src="app/records.js"></script>
+  <script type="text/babel" src="app/components.jsx"></script>
+  <script type="text/babel" src="app/start.jsx"></script>
+  <script type="text/babel" src="app/screening.jsx"></script>
+  <script type="text/babel" src="app/documentation.jsx"></script>
+  <script type="text/babel" src="app/preview.jsx"></script>
+  <script type="text/babel" src="app/app.jsx"></script>
+</body>
+</html>

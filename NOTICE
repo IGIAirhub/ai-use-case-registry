@@ -1,0 +1,18 @@
+AI Use Case Registry
+Copyright 2025-2026 International Gaming Institute, University of Nevada, Las Vegas
+
+Developed by AiR Hub (AI Research Hub) at UNLV International Gaming
+Institute.
+https://www.igiairhub.com/
+https://github.com/kasvegas/ai-use-case-registry
+
+The software is licensed under the Apache License, Version 2.0 (see LICENSE).
+The framework content in content/ (screening questions, tier definitions,
+documentation fields and accompanying text) is licensed under the Creative
+Commons Attribution 4.0 International License (see content/LICENSE).
+
+This product includes third-party software in vendor/:
+  React and React DOM 18.3.1, Copyright (c) Facebook, Inc. and its affiliates,
+  MIT License (vendor/LICENSE-react.txt)
+  Babel standalone 7.29.0, Copyright (c) 2014-present Sebastian McKenzie and
+  other contributors, MIT License (vendor/LICENSE-babel.txt)

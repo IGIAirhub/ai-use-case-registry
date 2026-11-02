@@ -26,6 +26,11 @@ const SHEET_NAME = "Inventory";
 // misuse: anyone who can open your registry can read it in registry.config.js.
 const TOKEN = "change-me";
 
+// Question and field ids become column headers, so anyone who can read TOKEN could otherwise
+// send an id that runs as a spreadsheet formula, or add columns without limit.
+const VALID_ID = /^[A-Za-z0-9][\w.-]{0,63}$/;
+const MAX_COLUMNS = 500;
+
 function doPost(e) {
   // Any error must still come back as {ok: false}. Otherwise Apps Script answers with an
   // HTML error page, and the person submitting isn't told their record didn't arrive.
@@ -54,6 +59,8 @@ function handle(e) {
     const book = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = book.getSheetByName(SHEET_NAME) || book.insertSheet(SHEET_NAME);
     const values = flatten(record);
+    const badId = Object.keys(values).find((id) => !VALID_ID.test(id));
+    if (badId !== undefined) return { ok: false, error: "Invalid question or field id: " + badId };
 
     // Match columns by the first word of each header ("A1.2 Use Case Summary" -> "A1.2").
     let header = sheet.getLastRow() > 0
@@ -66,6 +73,11 @@ function handle(e) {
         header.push(id);
       }
     });
+    if (header.length > MAX_COLUMNS) return { ok: false, error: "This record would need too many columns" };
+
+    // A new tab has only 26 columns, and writing past the last one throws.
+    const extraColumns = header.length - sheet.getMaxColumns();
+    if (extraColumns > 0) sheet.insertColumnsAfter(sheet.getMaxColumns(), extraColumns);
     sheet.getRange(1, 1, 1, header.length).setValues([header]);
 
     // "Try again" after a slow reply can resend a submission that already arrived, so skip

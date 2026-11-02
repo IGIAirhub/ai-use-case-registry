@@ -125,6 +125,8 @@ The tier colors in `styles.css` cover tiers 1–3 (`--t1` to `--t3`). If you add
 
 Translations and exported records refer to ids (group `id`, question `id`, tier `level`, section `id`, field `id`). Change any text freely, but give new questions or fields new ids rather than reusing old ones. Otherwise older records and spreadsheets will put answers under the wrong heading.
 
+Keep question and field ids to letters, numbers, `.`, `_` and `-`, starting with a letter or number, and no longer than 64 characters including any contact subfield. The Google Sheets script refuses records with any other id.
+
 ## Languages
 
 Translations only change text, never structure. `registry.es.js` overlays Spanish onto the English structure, matched by id, and anything it leaves out falls back to English.

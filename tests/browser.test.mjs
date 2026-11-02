@@ -58,6 +58,14 @@ describe("the registry in a browser", { skip: executable ? false : "Chrome or We
       window.confirmAnswer = true;
       window.confirms = [];
       window.confirm = (message) => { window.confirms.push(message); return window.confirmAnswer; };
+      window.observersMade = 0;
+      const Observer = window.IntersectionObserver;
+      window.IntersectionObserver = class extends Observer {
+        constructor(...args) {
+          super(...args);
+          window.observersMade++;
+        }
+      };
     })()`);
   };
 
@@ -193,6 +201,35 @@ describe("the registry in a browser", { skip: executable ? false : "Chrome or We
     await fillIntake("New Name", "New Area");
     await finishScreening();
     assert.equal(await page.value(".doc-content textarea"), "A written summary");
+  });
+
+  it("shows an error instead of a blank page for a malformed saved record", async () => {
+    await toDocumentation();
+    const record = JSON.parse(await downloadDraft());
+    await clickHeader();
+    await openSavedRecord(JSON.stringify({ ...record, useCase: { name: 123, operationalArea: "Support" } }));
+    await page.waitFor(`Boolean(document.querySelector(".import-error"))`);
+    assert.equal(await page.has(".cta-begin"), true);
+    assert.deepEqual(page.exceptions, []);
+  });
+
+  describe("the documentation side nav", () => {
+    it("doesn't rebuild its scroll tracking while typing", async () => {
+      await toDocumentation();
+      const before = await page.evaluate("window.observersMade");
+      await page.fill(".doc-content textarea", "A");
+      await page.fill(".doc-content textarea", "AB");
+      await page.fill(".doc-title-input", "Renamed");
+      assert.ok(before > 0);
+      assert.equal(await page.evaluate("window.observersMade"), before);
+    });
+
+    it("follows a language change", async () => {
+      await toDocumentation();
+      const english = await page.text(".doc-nav .nav-item");
+      await page.click(".lang-opt:not(.active)");
+      assert.notEqual(await page.text(".doc-nav .nav-item"), english);
+    });
   });
 
   describe("leaving and coming back", () => {

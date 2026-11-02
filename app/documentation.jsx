@@ -4,10 +4,10 @@
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
 function DocumentationScreen({ tier, intake, screeningAnswers = {}, answers, setAnswers, onPreview, onBack, onDownloadDraft }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const TD = RegistryData.tier;
   // Sections marked ownTierOnly (the elaborations) appear only at the use case's own tier.
-  const tierGroups = RegistryData.getSectionsForTier(tier);
+  const tierGroups = useMemo(() => RegistryData.getSectionsForTier(tier), [tier, lang]);
 
   // Build a screening-context sentence for an elaboration section.
   const sectionContext = (section) => {

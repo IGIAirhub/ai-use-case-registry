@@ -183,6 +183,12 @@
     const tier = Number(record.screening && record.screening.tier);
     if (!reg.tier(tier)) throw new Error(`Unknown tier: ${tier}`);
 
+    // The screens treat the name and area as text, so anything else can't be opened.
+    const useCase = record.useCase || {};
+    [useCase.name, useCase.operationalArea].forEach((value) => {
+      if (value != null && typeof value !== "string") throw new Error("Not a registry record");
+    });
+
     const flat = (record.screening && record.screening.answers) || {};
     const groupAnswers = {};
     reg.screening.forEach((g) => {
@@ -228,7 +234,6 @@
       needsScreening: unanswered > 0 || screenedTier !== tier,
     };
 
-    const useCase = record.useCase || {};
     return {
       notes,
       meta: {

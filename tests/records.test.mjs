@@ -153,6 +153,21 @@ describe("readRecordFile", () => {
     await assert.rejects(open({ ...saved(), screening: { tier: 99, answers: {} } }), /Unknown tier/);
   });
 
+  for (const [key, value] of [["name", 123], ["operationalArea", true], ["name", { text: "x" }]]) {
+    it(`refuses ${JSON.stringify(value)} as the use case's ${key}`, async () => {
+      const record = saved();
+      record.useCase[key] = value;
+      await assert.rejects(open(record), /Not a registry record/);
+    });
+  }
+
+  it("opens a record with no name, area or use case at all", async () => {
+    const record = saved();
+    delete record.useCase;
+    assert.equal((await open(record)).screening.intake.useCaseName, "");
+    assert.equal((await open({ ...saved(), useCase: { name: null } })).screening.intake.useCaseName, "");
+  });
+
   it("asks for screening again when the answers don't support the tier", async () => {
     const record = saved(3);
     record.screening.answers = {};

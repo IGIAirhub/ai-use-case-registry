@@ -53,3 +53,42 @@ describe("scripts/build.mjs", () => {
     assert.match(readBuilt("app/app.js"), /applyIntake/);
   });
 });
+
+describe("scripts/build.mjs with missing files", () => {
+  // Build a copy after changing it, and report how the build ended.
+  const buildAfter = (change) => {
+    const copy = fs.mkdtempSync(path.join(os.tmpdir(), "registry-build-"));
+    const skip = new Set([".git", "dist", "tests"]);
+    fs.cpSync(root, copy, { recursive: true, filter: (from) => !skip.has(path.relative(root, from)) });
+    const editIndex = (edit) => {
+      const file = path.join(copy, "index.html");
+      fs.writeFileSync(file, edit(fs.readFileSync(file, "utf8")));
+    };
+    try {
+      change({ copy, editIndex });
+      return spawnSync(process.execPath, ["scripts/build.mjs"], { cwd: copy, encoding: "utf8" });
+    } finally {
+      fs.rmSync(copy, { recursive: true, force: true });
+    }
+  };
+
+  it("fails when a JSX file index.html loads doesn't exist", () => {
+    const result = buildAfter(({ copy }) => fs.rmSync(path.join(copy, "app/preview.jsx")));
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /app\/preview\.jsx/);
+  });
+
+  it("fails when a plain script index.html loads doesn't exist", () => {
+    const result = buildAfter(({ editIndex }) =>
+      editIndex((html) => html.replace("</body>", '<script src="app/gone.js"></script></body>')));
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /app\/gone\.js/);
+  });
+
+  it("only warns about a missing image", () => {
+    const result = buildAfter(({ editIndex }) =>
+      editIndex((html) => html.replace("images/favicon.svg", "images/gone.svg")));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /Warning:[^]*images\/gone\.svg/);
+  });
+});

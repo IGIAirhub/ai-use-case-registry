@@ -49,6 +49,8 @@ const inDist = (rel) => isFile(dist, rel);
 // Referenced files that couldn't be copied, listed at the end so a broken logo or font
 // doesn't go unnoticed.
 const missing = new Set();
+// A missing script leaves a blank page, so unlike those it fails the build.
+const missingScripts = new Set();
 const copyReferenced = (rel) => {
   if (!inRoot(rel)) return missing.add(outside(rel) ? `${rel} (outside the project folder)` : rel);
   if (!inDist(rel)) copy(rel);
@@ -103,6 +105,10 @@ for (const m of html.matchAll(/<(link|script)\b([^>]*)>/gi)) {
   if (!isLocal(ref) || (m[1].toLowerCase() === "link" && !loadsFile(a))) continue;
   const rel = resolve("index.html", ref);
   if (m[1].toLowerCase() === "script" && (isBabelScript(a) || isBabelCompiler(rel))) continue; // compiled or left out below
+  if (m[1].toLowerCase() === "script" && !inRoot(rel)) {
+    missingScripts.add(rel);
+    continue;
+  }
   copyReferenced(rel);
   if (relsOf(a).includes("stylesheet")) stylesheets.push(rel);
 }
@@ -126,7 +132,7 @@ const jsxFiles = [...html.matchAll(scriptTag)]
   .filter((a) => isBabelScript(a) && isLocal(a.src))
   .map((a) => resolve("index.html", a.src));
 jsxFiles.forEach((rel) => {
-  if (!inRoot(rel)) return missing.add(rel);
+  if (!inRoot(rel)) return missingScripts.add(rel);
   const { code } = Babel.transform(read(rel), { presets: ["react"], filename: rel, comments: false });
   write(compiledName(rel), `(function () {\n${code}\n})();\n`);
 });
@@ -207,4 +213,8 @@ console.log(`Compiled ${jsxFiles.length} JSX files into dist/`);
 console.log(`dist/index.html + assets, dist/ai-use-case-registry.html (${kb("ai-use-case-registry.html")})`);
 if (missing.size) {
   console.warn(`\nWarning: these files are referenced but couldn't be copied, so they'll be missing from dist/:\n  ${[...missing].join("\n  ")}`);
+}
+if (missingScripts.size) {
+  console.error(`\nError: index.html loads these scripts, but they don't exist, so the page wouldn't work:\n  ${[...missingScripts].join("\n  ")}`);
+  process.exitCode = 1;
 }

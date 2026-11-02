@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and other ideas
+    url: https://github.com/kasvegas/ai-use-case-registry/discussions
+    about: For anything that isn't a bug or a feature request, or to ask first.
+  - name: Report a security problem
+    url: https://github.com/kasvegas/ai-use-case-registry/security/advisories/new
+    about: Please report security problems privately, not in an issue.

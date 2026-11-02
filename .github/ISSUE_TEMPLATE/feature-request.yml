@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest something new or better.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What do you want?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: How would it improve the registry?
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else we need to know?
+      description: Screenshots, examples or links. You can drag images into this box.

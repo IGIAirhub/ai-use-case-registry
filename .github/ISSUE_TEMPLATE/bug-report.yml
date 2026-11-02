@@ -1,0 +1,35 @@
+name: Bug report
+description: Something doesn't work as it should.
+labels: ["bug"]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where is it?
+      description: The page or step in the registry, or the file or doc.
+      placeholder: e.g. Documentation page, Tier 3; docs/integrations.md
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What is it?
+      description: What goes wrong, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How do you replicate it?
+      placeholder: |
+        1. Begin screening
+        2. Answer "Yes" to A1
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: How is it affecting users?
+    validations:
+      required: true

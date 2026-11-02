@@ -95,3 +95,7 @@ Running the registry inside your organization without sharing it carries no attr
 The registry is maintained as research by AiR Hub and evolves through co-design with operators, suppliers and regulators. Issues and pull requests are welcome. Substantive changes to the tiering model or field content are reviewed against the underlying research.
 
 This is a documentation and transparency tool, not a regulatory requirement, certification scheme or approval process.
+
+## AI Disclosure
+
+Code in this project was generated with AI-assisted coding tools, under the direction of the maintainers, who reviewed and tested it. The framework content in `content/` was developed through research and stakeholder engagement.

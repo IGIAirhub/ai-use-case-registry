@@ -1,6 +1,6 @@
 name: Build
 
-# Every push and pull request: compile the registry into dist/ and keep it as an artifact.
+# Every push and pull request: run the tests, compile the registry into dist/ and keep it as an artifact.
 # Pushes to main (or Run workflow on main): publish dist/ to GitHub Pages, only if the repository is public AND the
 #   repository variable DEPLOY_PAGES is "true". Pages is public, so it's off unless you opt in.
 # Published releases: attach the single-file version and a zip of dist/ to the release.
@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Run tests
+        run: node --test
       - name: Build dist/
         run: node scripts/build.mjs
       - uses: actions/upload-artifact@v4

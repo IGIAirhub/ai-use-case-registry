@@ -170,8 +170,9 @@ function App() {
 
       {stage === "screening" ?
       <ScreeningScreen
-        initial={screeningState ? { intake: screeningState.intake, answers: screeningState.answers, stage: 0 } : null}
+        initial={screeningState ? { intake: Records.currentIntake(screeningState.intake, answers), answers: screeningState.answers, stage: 0 } : null}
         onComplete={(result) => {
+          setAnswers((prev) => Records.applyIntake(prev, result.intake));
           setScreeningState(result);
           if (!meta) setMeta(newMeta());
           setStage("documentation");

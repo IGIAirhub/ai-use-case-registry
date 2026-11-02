@@ -34,6 +34,25 @@
     return (answers[field.id] || "").trim();
   }
 
+  // The name and area start at intake and can be edited during documentation. The documented
+  // values win, so the review page and the record always agree.
+  function currentIntake(intake, answers) {
+    const documented = (key) => {
+      const f = allFields(base()).find((field) => field.derivedFromIntake === key);
+      return ((f && answers[f.id]) || intake[key] || "").trim();
+    };
+    return { useCaseName: documented("useCaseName"), operationalArea: documented("operationalArea") };
+  }
+
+  // Finishing screening confirms the intake values, so they replace the documented ones.
+  function applyIntake(answers, intake) {
+    const next = { ...answers };
+    allFields(base()).forEach((f) => {
+      if (f.derivedFromIntake && intake[f.derivedFromIntake]) next[f.id] = intake[f.derivedFromIntake];
+    });
+    return next;
+  }
+
   // state = { meta: {id, createdAt, submittedAt}, lang, screening: {tier, intake, answers}, answers }
   // screening.answers is {groupId: {questionId: "yes" | "no"}}; answers holds field values.
   function buildRecord(state, { status = "draft" } = {}) {
@@ -47,12 +66,7 @@
       s.fields.forEach((f) => { fields[f.id] = fieldValue(f, state.answers); });
     }));
 
-    // The name and area can be edited after intake, so prefer the documented values.
-    const fieldFor = (key) => allFields(reg).find((f) => f.derivedFromIntake === key);
-    const documented = (key) => {
-      const f = fieldFor(key);
-      return ((f && state.answers[f.id]) || intake[key] || "").trim();
-    };
+    const current = currentIntake(intake, state.answers);
 
     // A submitted record keeps one timestamp, so every download of it matches.
     const now = (status === "submitted" && state.meta.submittedAt) || new Date().toISOString();
@@ -68,7 +82,7 @@
       organization: window.RegistryConfig.organization || "",
       language: state.lang,
       contentVersion: reg.startPage.version || "",
-      useCase: { name: documented("useCaseName"), operationalArea: documented("operationalArea") },
+      useCase: { name: current.useCaseName, operationalArea: current.operationalArea },
       screening: { tier, tierLabel: t ? t.label : "", answers: screeningAnswers },
       fields,
     };
@@ -278,6 +292,8 @@
 
   window.Records = {
     newRecordId,
+    currentIntake,
+    applyIntake,
     buildRecord,
     recordToCsv,
     downloadJson,

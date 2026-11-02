@@ -33,9 +33,10 @@ function PreviewScreen({ tier, intake, answers, recordId, submitted, sendStatus,
   const contactField = fields.find((f) => f.kind === "contact");
   const contact = contactField ? contactSummary(contactField, answers) : "";
   const dash = t("dash");
+  const current = Records.currentIntake(intake, answers);
   const summaryFacts = [
     { label: t("fact_docLevel"), value: <span><strong>{T.name}</strong> — {T.label}</span> },
-    { label: t("fact_area"), value: intake.operationalArea || dash },
+    { label: t("fact_area"), value: current.operationalArea || dash },
     { label: t("fact_deployment"), value: deployment || dash },
     { label: t("fact_contact"), value: contact || dash },
   ];
@@ -46,7 +47,7 @@ function PreviewScreen({ tier, intake, answers, recordId, submitted, sendStatus,
     <div className="preview-wrap fade-in">
       <div className="preview-head">
         <div className="eyebrow">{submitted ? t("submittedEyebrow", recordId) : t("previewEyebrow")}</div>
-        <h1>{intake.useCaseName || t("previewTitlePlaceholder")}</h1>
+        <h1>{current.useCaseName || t("previewTitlePlaceholder")}</h1>
         {submitted ? null : (
           <p className="preview-lede-note">
             {t("previewNoteA")}<strong>{t("confirmSubmit")}</strong>.

@@ -79,6 +79,7 @@ templates/              blank inventory spreadsheet
 docs/                   customizing, integrations, deploying, record format
 integrations/           Google Sheets Apps Script
 scripts/build.mjs       produces the compiled build and the single-file version (run by CI)
+tests/                  run with `node --test`, no npm install; browser tests need Chrome and Node 22+
 vendor/                 React 18.3.1 and Babel 7.29.0, served locally (no CDN)
 ```
 

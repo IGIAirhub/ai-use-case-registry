@@ -103,6 +103,7 @@ function makePage(send, sessionId, targetId, exceptions) {
     goto: async (url) => {
       await send("Page.navigate", { url }, sessionId);
     },
+    setWidth: (width) => send("Emulation.setDeviceMetricsOverride", { width, height: 800, deviceScaleFactor: 1, mobile: false }, sessionId),
     has: (css) => evaluate(`Boolean(document.querySelector(${selector(css)}))`),
     text: (css) => evaluate(`document.querySelector(${selector(css)}).innerText`),
     value: (css) => evaluate(`document.querySelector(${selector(css)}).value`),

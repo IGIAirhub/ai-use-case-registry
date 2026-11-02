@@ -1283,6 +1283,22 @@ body {
   background: var(--line);
 }
 
+/* On a phone, buttons may not fit side by side, and a long label may need two lines. */
+@media (max-width: 560px) {
+  .nav-row,
+  .nav-row > div,
+  .screening-actionbar .actionbar-buttons { flex-wrap: wrap; }
+  .nav-row > div,
+  .screening-actionbar .actionbar-buttons { flex: 1 1 auto; }
+  .nav-row .btn,
+  .screening-actionbar .actionbar-buttons .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    white-space: normal;
+    line-height: 1.25;
+  }
+}
+
 /* ============ Screening result ============ */
 .result-card {
   background: var(--surface);

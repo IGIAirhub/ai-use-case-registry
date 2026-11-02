@@ -232,6 +232,48 @@ describe("the registry in a browser", { skip: executable ? false : "Chrome or We
     });
   });
 
+  describe("on a phone", () => {
+    const allWithinScreen = (css) => page.evaluate(`[...document.querySelectorAll(${JSON.stringify(css)})]
+      .every((el) => el.getBoundingClientRect().left >= 0 && el.getBoundingClientRect().right <= innerWidth)`);
+    const fitsScreen = () => page.evaluate("document.documentElement.scrollWidth <= innerWidth");
+    const toSpanish = () => page.click(".lang-opt:not(.active)");
+
+    for (const width of [320, 360, 390, 430]) {
+      for (const language of ["English", "Spanish"]) {
+        it(`keeps the Continue buttons on screen at ${width}px in ${language}`, async () => {
+          await page.setWidth(width);
+          if (language === "Spanish") await toSpanish();
+          await page.click(".cta-begin");
+          await fillIntake("Chatbot", "Support");
+          assert.equal(await allWithinScreen(".nav-row .btn"), true, "intake buttons");
+          assert.equal(await fitsScreen(), true, "intake page");
+          await page.click(".nav-row .btn.primary");
+          assert.equal(await allWithinScreen(".actionbar-buttons .btn"), true, "question buttons");
+          assert.equal(await fitsScreen(), true, "question page");
+          await page.evaluate(`document.querySelectorAll(".yn-toggle").forEach((t) => t.querySelector(".yn-seg").click())`);
+          while (await page.has(".yn-toggle")) {
+            await page.evaluate(`document.querySelectorAll(".yn-toggle").forEach((t) => t.querySelector(".yn-seg").click())`);
+            await page.click(".actionbar-buttons .btn.primary");
+          }
+          assert.equal(await allWithinScreen(".result-actions .btn"), true, "result buttons");
+          await page.click(".result-actions .btn.primary");
+          await page.waitFor(`Boolean(document.querySelector(".doc-content .nav-row"))`);
+          assert.equal(await allWithinScreen(".doc-content .nav-row .btn"), true, "documentation buttons");
+        });
+      }
+    }
+
+    it("keeps the buttons side by side on a desktop screen", async () => {
+      await page.setWidth(1280);
+      await page.click(".cta-begin");
+      await page.waitFor(`Boolean(document.querySelector(".intake-grid"))`);
+      const tops = await page.evaluate(`[...document.querySelectorAll(".nav-row .btn")].map((el) => el.getBoundingClientRect().top)`);
+      assert.equal(tops.length, 2);
+      assert.equal(tops[0], tops[1]);
+      assert.equal(await page.evaluate(`getComputedStyle(document.querySelector(".nav-row .btn")).whiteSpace`), "nowrap");
+    });
+  });
+
   describe("leaving and coming back", () => {
     it("keeps a first screening left from the header, at the same step", async () => {
       await page.click(".cta-begin");

@@ -265,6 +265,7 @@ Esta definición es una base recomendada, adaptada de la Recomendación de la OC
     startSubmission: "Iniciar un nuevo registro de caso de uso",
     readFirst: "Leer primero",
     beginScreening: "Comenzar la evaluación",
+    resumeSubmission: "Continuar su registro en curso",
     openSaved: "Abrir un registro guardado",
     demoBar: "Demostración: esto es lo que vería su personal. Nada de lo que ingrese se guarda ni se envía.",
     demoBarLink: "Obtener el registro de código abierto",
@@ -347,5 +348,7 @@ Esta definición es una base recomendada, adaptada de la Recomendación de la OC
     retrySend: "Intentar de nuevo",
     dash: "—",
     dialogReturnHome: "¿Volver a la página de inicio? Su registro en curso se conservará durante esta sesión.",
+    dialogDiscardWork: "¿Descartar su registro en curso? Esta acción no se puede deshacer.",
+    dialogRecordUnsaved: "No ha descargado este registro y aquí no se conserva ninguna copia. ¿Salir sin guardarlo?",
   },
 };

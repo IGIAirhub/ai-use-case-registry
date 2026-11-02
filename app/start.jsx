@@ -19,7 +19,7 @@ function renderWithLinks(text, links) {
   });
 }
 
-function StartScreen({ onStart, onOpenRecord }) {
+function StartScreen({ hasWork, onResume, onStart, onOpenRecord }) {
   const { t } = useI18n();
   const D = RegistryData.startPage;
   const tiers = RegistryData.tiers;
@@ -52,9 +52,10 @@ function StartScreen({ onStart, onOpenRecord }) {
             {[D.blurb, D.blurbTail].filter(Boolean).join(" ")}
           </p>
           <div className="start-actions" data-config="registry.config.js · theme">
-            <button className="btn primary cta-begin" onClick={onStart}>
-              {t("beginScreening")} <span className="arr">→</span>
+            <button className="btn primary cta-begin" onClick={hasWork ? onResume : onStart}>
+              {t(hasWork ? "resumeSubmission" : "beginScreening")} <span className="arr">→</span>
             </button>
+            {hasWork ? <button className="btn secondary start-new" onClick={onStart}>{t("startSubmission")}</button> : null}
             <button className="btn secondary" onClick={() => fileInput.current.click()}>
               {t("openSaved")}
             </button>

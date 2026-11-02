@@ -576,6 +576,7 @@ This definition is a recommended baseline, adapted from the OECD Recommendation 
     startSubmission: "Start a new use case submission",
     readFirst: "Read first",
     beginScreening: "Begin screening",
+    resumeSubmission: "Resume your submission",
     openSaved: "Open a saved record",
     demoBar: "Demo: this is what your staff would see. Nothing you enter is stored or sent.",
     demoBarLink: "Get the open-source registry",
@@ -658,5 +659,7 @@ This definition is a recommended baseline, adapted from the OECD Recommendation 
     retrySend: "Try again",
     dash: "—",
     dialogReturnHome: "Return to the homepage? Your in-progress submission will be kept in this session.",
+    dialogDiscardWork: "Discard your in-progress submission? This can't be undone.",
+    dialogRecordUnsaved: "You haven't downloaded this record, and nothing here keeps a copy. Leave without saving it?",
   },
 };

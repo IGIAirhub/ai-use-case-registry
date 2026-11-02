@@ -2,7 +2,7 @@
 // the same view shows the record's downloads.
 /* global React, RegistryData, TierPill, fieldIsFilled, contactSummary, optionLabel, useI18n, Records */
 
-function PreviewScreen({ tier, intake, answers, recordId, submitted, sendStatus, sendError, onRetrySend, buildRecord, onBackToEdit, onSubmit, onStartAnother }) {
+function PreviewScreen({ tier, intake, answers, recordId, submitted, sendStatus, sendError, onRetrySend, buildRecord, onBackToEdit, onSubmit, onRecordSaved, onStartAnother }) {
   const { t, lang } = useI18n();
   const tierGroups = RegistryData.getSectionsForTier(tier);
   const T = RegistryData.tier(tier);
@@ -64,10 +64,10 @@ function PreviewScreen({ tier, intake, answers, recordId, submitted, sendStatus,
               </div>
             </div>
             <div className="dl-row">
-              <button className="btn primary" onClick={() => Records.downloadJson(buildRecord({ status }))}>
+              <button className="btn primary" onClick={() => { Records.downloadJson(buildRecord({ status })); onRecordSaved(); }}>
                 {t("dl_json")}
               </button>
-              <button className="btn secondary" onClick={() => Records.downloadCsv(buildRecord({ status }))}>
+              <button className="btn secondary" onClick={() => { Records.downloadCsv(buildRecord({ status })); onRecordSaved(); }}>
                 {t("dl_csv")}
               </button>
               <button className="btn ghost" onClick={() => window.print()}>{t("print")}</button>

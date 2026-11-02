@@ -5,7 +5,7 @@
 
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
-function ScreeningScreen({ initial, onComplete, onBackToHome }) {
+function ScreeningScreen({ initial, onDraftChange, onComplete, onBackToHome }) {
   const { t } = useI18n();
   const groups = RegistryData.screening;
   const resultStage = groups.length + 1;
@@ -18,6 +18,11 @@ function ScreeningScreen({ initial, onComplete, onBackToHome }) {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [stage]);
+
+  // Keep a copy above this screen, so leaving it and coming back loses nothing.
+  useEffect(() => {
+    onDraftChange({ stage, intake, answers });
+  }, [stage, intake, answers]);
 
   const groupHasYes = (g) => Object.values(answers[g.id] || {}).some((v) => v === "yes");
 

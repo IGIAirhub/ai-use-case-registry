@@ -37,6 +37,10 @@ function demoScreeningState() {
 
 const newMeta = () => ({ id: Records.newRecordId(), createdAt: new Date().toISOString() });
 
+const intakeHasContent = (intake) => Boolean(intake.useCaseName.trim() || intake.operationalArea.trim());
+const draftHasContent = (draft) =>
+  intakeHasContent(draft.intake) || Object.values(draft.answers).some((group) => Object.keys(group).length > 0);
+
 function App() {
   const initialHash = parseHash();
   const needsDemo = initialHash && (initialHash.stage === "documentation" || initialHash.stage === "review");
@@ -44,6 +48,9 @@ function App() {
   const [stage, setStage] = useState(initialHash?.stage || "start");
   const [lang, setLang] = useState(initialHash?.lang || RegistryConfig.languages[0]);
   const [screeningState, setScreeningState] = useState(needsDemo ? demoScreeningState() : null); // {tier, intake, answers}
+  const [screeningDraft, setScreeningDraft] = useState(null); // screening in progress: {stage, intake, answers}
+  const [resumeStage, setResumeStage] = useState("screening"); // where Resume returns to
+  const [recordSaved, setRecordSaved] = useState(false); // the submitted record was downloaded
   const [answers, setAnswers] = useState({}); // documentation field answers
   const [meta, setMeta] = useState(needsDemo ? newMeta() : null); // {id, createdAt, submittedAt}
   const [sendStatus, setSendStatus] = useState(null); // null | "sending" | "ok" | "refused" | "unreachable"
@@ -55,6 +62,26 @@ function App() {
   setActiveLang(lang);
   const t = makeT(lang);
   const ctx = useMemo(() => ({ lang, setLang, t }), [lang]);
+
+  // Only what the person entered counts, so the demo's made-up screening answers don't.
+  const hasWork = Boolean(
+    (screeningDraft && draftHasContent(screeningDraft)) ||
+    Object.values(answers).some(Boolean) ||
+    (screeningState && intakeHasContent(screeningState.intake))
+  );
+  const recordIsSafe = recordSaved || sendStatus === "ok";
+  const unsaved = stage === "submitted" ? !recordIsSafe : hasWork;
+
+  // The browser holds the only copy until a record is downloaded or sent.
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsaved]);
 
   useEffect(() => {
     document.body.classList.toggle("show-config", showConfig);
@@ -85,6 +112,9 @@ function App() {
 
   const reset = () => {
     setScreeningState(null);
+    setScreeningDraft(null);
+    setResumeStage("screening");
+    setRecordSaved(false);
     setAnswers({});
     setMeta(null);
     sendSeq.current++;
@@ -93,12 +123,27 @@ function App() {
     setStage("start");
   };
 
-  const goHome = () => {
-    if (stage === "submitted") return reset();
-    if (Object.keys(answers).length > 0 || screeningState) {
-      if (!confirm(t("dialogReturnHome"))) return;
-    }
+  const leaveToStart = () => {
+    setResumeStage(stage === "documentation" || stage === "review" ? stage : "screening");
     setStage("start");
+  };
+
+  const startAnother = () => {
+    if (!recordIsSafe && !confirm(t("dialogRecordUnsaved"))) return;
+    reset();
+  };
+
+  const goHome = () => {
+    if (stage === "start") return;
+    if (stage === "submitted") return startAnother();
+    if (hasWork && !confirm(t("dialogReturnHome"))) return;
+    leaveToStart();
+  };
+
+  const beginNew = () => {
+    if (hasWork && !confirm(t("dialogDiscardWork"))) return;
+    reset();
+    setStage("screening");
   };
 
   // Once submitted, a record keeps the language it was submitted in, even if the
@@ -108,6 +153,7 @@ function App() {
 
   const openRecord = (file) =>
     Records.readRecordFile(file).then((state) => {
+      if (hasWork && !confirm(t("dialogDiscardWork"))) return;
       // Say what won't carry over before opening a record made with other questions or fields.
       const n = state.notes;
       const warnings = [];
@@ -116,6 +162,8 @@ function App() {
       if (n.needsScreening) warnings.push(t("openRescreen"));
       if (warnings.length && !confirm(`${warnings.join("\n\n")}\n\n${t("openContinue")}`)) return;
       setScreeningState(state.screening);
+      setScreeningDraft(null);
+      setRecordSaved(false);
       setAnswers(state.answers);
       setMeta(state.meta);
       sendSeq.current++;
@@ -165,19 +213,21 @@ function App() {
       null}
       <SiteHeader stage={stage} onHome={goHome} />
       {stage === "start" ?
-      <StartScreen onStart={() => setStage("screening")} onOpenRecord={openRecord} /> :
+      <StartScreen hasWork={hasWork} onResume={() => setStage(resumeStage)} onStart={beginNew} onOpenRecord={openRecord} /> :
       null}
 
       {stage === "screening" ?
       <ScreeningScreen
-        initial={screeningState ? { intake: Records.currentIntake(screeningState.intake, answers), answers: screeningState.answers, stage: 0 } : null}
+        initial={screeningDraft || (screeningState ? { intake: Records.currentIntake(screeningState.intake, answers), answers: screeningState.answers, stage: 0 } : null)}
+        onDraftChange={setScreeningDraft}
         onComplete={(result) => {
           setAnswers((prev) => Records.applyIntake(prev, result.intake));
           setScreeningState(result);
+          setScreeningDraft(null);
           if (!meta) setMeta(newMeta());
           setStage("documentation");
         }}
-        onBackToHome={() => setStage("start")} /> :
+        onBackToHome={leaveToStart} /> :
 
       null}
 
@@ -189,7 +239,10 @@ function App() {
         answers={answers}
         setAnswers={setAnswers}
         onPreview={() => setStage("review")}
-        onBack={() => setStage("screening")}
+        onBack={() => {
+          setScreeningDraft(null);
+          setStage("screening");
+        }}
         onDownloadDraft={() => Records.downloadJson(buildRecord({ status: "draft" }), "-draft")} /> :
 
       null}
@@ -207,7 +260,8 @@ function App() {
         buildRecord={buildRecord}
         onBackToEdit={() => setStage("documentation")}
         onSubmit={submit}
-        onStartAnother={reset} /> :
+        onRecordSaved={() => setRecordSaved(true)}
+        onStartAnother={startAnother} /> :
 
       null}
     </LangContext.Provider>);

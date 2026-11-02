@@ -18,6 +18,7 @@ describe("the registry in a browser", { skip: executable ? false : "Chrome or We
   let chrome;
   let page;
   let address;
+  let demo = false; // serve the config the public demo uses
 
   before(async () => {
     server = http.createServer((req, res) => {
@@ -28,6 +29,10 @@ describe("the registry in a browser", { skip: executable ? false : "Chrome or We
         return;
       }
       res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "application/octet-stream" });
+      if (demo && rel === "/registry.config.js") {
+        res.end(`${fs.readFileSync(file, "utf8")}\nwindow.REGISTRY_CONFIG.demo = { href: "https://example.test" };\n`);
+        return;
+      }
       fs.createReadStream(file).pipe(res);
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -40,17 +45,23 @@ describe("the registry in a browser", { skip: executable ? false : "Chrome or We
     await new Promise((resolve) => (server ? server.close(resolve) : resolve()));
   });
 
-  beforeEach(async () => {
+  const open = async (url, readySelector) => {
     page = await chrome.newPage();
-    await page.goto(address);
-    await page.waitFor(`Boolean(document.querySelector(".cta-begin"))`);
-    // Capture downloads instead of saving them.
+    await page.goto(url);
+    await page.waitFor(`Boolean(document.querySelector(${JSON.stringify(readySelector)}))`);
+    // Capture downloads instead of saving them, and answer dialogs instead of waiting on them.
     await page.evaluate(`(() => {
       const createObjectURL = URL.createObjectURL.bind(URL);
       URL.createObjectURL = (blob) => { window.lastDownload = blob; return createObjectURL(blob); };
       HTMLAnchorElement.prototype.click = () => {};
+      window.print = () => {};
+      window.confirmAnswer = true;
+      window.confirms = [];
+      window.confirm = (message) => { window.confirms.push(message); return window.confirmAnswer; };
     })()`);
-  });
+  };
+
+  beforeEach(() => open(address, ".cta-begin"));
 
   afterEach(() => page.close());
 
@@ -88,6 +99,31 @@ describe("the registry in a browser", { skip: executable ? false : "Chrome or We
     await page.click(".submit-panel .btn.primary");
     return JSON.parse(await page.evaluate("window.lastDownload.text()"));
   };
+
+  const submit = async () => {
+    await page.click(".preview-wrap .btn.primary");
+    await page.waitFor(`Boolean(document.querySelector(".submit-panel"))`);
+  };
+  const clickHeader = () => page.click(".page-label");
+  const resume = () => page.click(".cta-begin");
+  const answerConfirmWith = (answer) => page.evaluate(`window.confirmAnswer = ${answer}`);
+  const confirmCount = () => page.evaluate("window.confirms.length");
+  const warnsOnLeave = () => page.evaluate(`(() => {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  })()`);
+  const downloadDraft = async () => {
+    await page.click(".doc-content .nav-row .btn.secondary");
+    return page.evaluate("window.lastDownload.text()");
+  };
+  const openSavedRecord = (text) => page.evaluate(`(() => {
+    const input = document.querySelector('input[type="file"]');
+    const files = new DataTransfer();
+    files.items.add(new File([${JSON.stringify(text)}], "record.json", { type: "application/json" }));
+    input.files = files.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
 
   const expectEverywhere = async (name, area, oldValues = []) => {
     assert.equal(await page.text(".preview-head h1"), name);
@@ -159,13 +195,229 @@ describe("the registry in a browser", { skip: executable ? false : "Chrome or We
     assert.equal(await page.value(".doc-content textarea"), "A written summary");
   });
 
-  it("discards an intake change that was never finished", async () => {
-    await toDocumentation("Chatbot", "Support");
-    await backToIntake();
-    await fillIntake("Abandoned", "Abandoned");
-    await page.click(".nav-row .btn.ghost"); // back to the start page
-    await page.click(".cta-begin");
-    await page.waitFor(`Boolean(document.querySelector(".intake-grid"))`);
-    assert.equal(await page.value(".intake-grid input"), "Chatbot");
+  describe("leaving and coming back", () => {
+    it("keeps a first screening left from the header, at the same step", async () => {
+      await page.click(".cta-begin");
+      await fillIntake("Chatbot", "Support");
+      await page.click(".nav-row .btn.primary");
+      await page.evaluate(`document.querySelector(".yn-toggle .yn-seg").click()`);
+      await clickHeader();
+      assert.equal(await confirmCount(), 1);
+      await resume();
+      assert.equal(await page.evaluate(`document.querySelectorAll(".yn-seg.sel").length`), 1);
+      await page.click(".actionbar-buttons .btn.ghost");
+      assert.equal(await page.value(".intake-grid input"), "Chatbot");
+    });
+
+    it("keeps edits made while going back through screening", async () => {
+      await toDocumentation("Chatbot", "Support");
+      await backToIntake();
+      await fillIntake("Edited", "Edited Area");
+      await clickHeader();
+      await resume();
+      assert.equal(await page.value(".intake-grid input"), "Edited");
+    });
+
+    it("keeps an unfinished intake change after the Back to home button", async () => {
+      await toDocumentation("Chatbot", "Support");
+      await backToIntake();
+      await fillIntake("Unfinished", "Unfinished Area");
+      await page.click(".nav-row .btn.ghost");
+      await resume();
+      assert.equal(await page.value(".intake-grid input"), "Unfinished");
+    });
+
+    it("doesn't ask before leaving a screening with nothing entered", async () => {
+      await page.click(".cta-begin");
+      await page.waitFor(`Boolean(document.querySelector(".intake-grid"))`);
+      await clickHeader();
+      assert.equal(await confirmCount(), 0);
+      assert.equal(await page.has(".start-new"), false);
+    });
+
+    it("stays on the page when returning home is cancelled", async () => {
+      await toDocumentation();
+      await answerConfirmWith(false);
+      await clickHeader();
+      assert.equal(await page.has(".doc-title-input"), true);
+    });
+
+    it("resumes documentation and review where they were left", async () => {
+      await toDocumentation();
+      await page.fill(".doc-content textarea", "A written summary");
+      await clickHeader();
+      await resume();
+      assert.equal(await page.value(".doc-content textarea"), "A written summary");
+      await toReview();
+      await clickHeader();
+      await resume();
+      assert.equal(await page.has(".preview-head h1"), true);
+    });
+
+    it("doesn't lose the resume point when the header is clicked on the start page", async () => {
+      await toDocumentation();
+      await clickHeader();
+      await clickHeader();
+      await resume();
+      assert.equal(await page.has(".doc-title-input"), true);
+    });
+  });
+
+  describe("starting a new use case", () => {
+    it("starts clean, with a new record id", async () => {
+      await toDocumentation("First", "First Area");
+      await page.fill(".doc-content textarea", "First summary");
+      const first = JSON.parse(await downloadDraft());
+      await clickHeader();
+      await page.click(".start-new");
+      assert.equal(await page.value(".intake-grid input"), "");
+      await fillIntake("Second", "Second Area");
+      await finishScreening();
+      assert.equal(await page.value(".doc-content textarea"), "");
+      await toReview();
+      const record = await expectEverywhere("Second", "Second Area", ["First"]);
+      assert.notEqual(record.id, first.id);
+      assert.ok(!JSON.stringify(record).includes("First"));
+    });
+
+    it("keeps the work when Start new is cancelled", async () => {
+      await toDocumentation("First", "First Area");
+      await clickHeader();
+      await answerConfirmWith(false);
+      await page.click(".start-new");
+      await resume();
+      assert.equal(await page.value(".doc-title-input"), "First");
+    });
+
+    it("offers only Begin when there's no work in progress", async () => {
+      assert.equal(await page.has(".start-new"), false);
+      await page.click(".cta-begin");
+      assert.equal(await confirmCount(), 0);
+    });
+  });
+
+  describe("opening a saved record over work in progress", () => {
+    it("asks first, and keeps the work if cancelled", async () => {
+      await toDocumentation("In Progress", "Area");
+      const saved = (await downloadDraft()).replace("In Progress", "From File");
+      await clickHeader();
+      const asked = await confirmCount();
+      await answerConfirmWith(false);
+      await openSavedRecord(saved);
+      await page.waitFor(`window.confirms.length > ${asked}`);
+      await resume();
+      assert.equal(await page.value(".doc-title-input"), "In Progress");
+    });
+
+    it("opens the record when the discard is accepted", async () => {
+      await toDocumentation("In Progress", "Area");
+      const saved = await downloadDraft();
+      await clickHeader();
+      await openSavedRecord(saved.replace(/In Progress/g, "From File"));
+      await page.waitFor(`Boolean(document.querySelector(".doc-title-input"))`);
+      assert.equal(await page.value(".doc-title-input"), "From File");
+    });
+  });
+
+  describe("leaving a submitted record", () => {
+    const submitted = async () => {
+      await toDocumentation();
+      await toReview();
+      await submit();
+    };
+    const clickStartAnother = () => page.evaluate(`[...document.querySelectorAll(".preview-wrap .btn.primary")].pop().click()`);
+
+    it("asks before the header erases an undownloaded record", async () => {
+      await submitted();
+      await answerConfirmWith(false);
+      await clickHeader();
+      assert.equal(await confirmCount(), 1);
+      assert.equal(await page.has(".submit-panel"), true);
+      await answerConfirmWith(true);
+      await clickHeader();
+      assert.equal(await page.has(".cta-begin"), true);
+      assert.equal(await page.has(".start-new"), false);
+    });
+
+    it("asks before Start another erases an undownloaded record", async () => {
+      await submitted();
+      await answerConfirmWith(false);
+      await clickStartAnother();
+      assert.equal(await confirmCount(), 1);
+      assert.equal(await page.has(".submit-panel"), true);
+    });
+
+    for (const [format, selector] of [["JSON", ".dl-row .btn.primary"], ["CSV", ".dl-row .btn.secondary"]]) {
+      it(`doesn't ask once the ${format} is downloaded`, async () => {
+        await submitted();
+        await page.click(selector);
+        await clickHeader();
+        assert.equal(await confirmCount(), 0);
+        assert.equal(await page.has(".cta-begin"), true);
+      });
+    }
+
+    it("still asks after printing, which can be cancelled", async () => {
+      await submitted();
+      await page.click(".dl-row .btn.ghost");
+      await answerConfirmWith(false);
+      await clickHeader();
+      assert.equal(await confirmCount(), 1);
+    });
+  });
+
+  describe("warning before closing the page", () => {
+    it("doesn't warn with nothing entered", async () => {
+      assert.equal(await warnsOnLeave(), false);
+      await page.click(".cta-begin");
+      await page.waitFor(`Boolean(document.querySelector(".intake-grid"))`);
+      assert.equal(await warnsOnLeave(), false);
+    });
+
+    it("warns from the first typed character, through to submission", async () => {
+      await page.click(".cta-begin");
+      await page.fill(".intake-grid input", "C", 0);
+      assert.equal(await warnsOnLeave(), true);
+      await page.fill(".intake-grid input", "Chatbot", 0);
+      await page.fill(".intake-grid input", "Support", 1);
+      await finishScreening();
+      assert.equal(await warnsOnLeave(), true);
+      await clickHeader();
+      assert.equal(await warnsOnLeave(), true);
+      await resume();
+      await toReview();
+      assert.equal(await warnsOnLeave(), true);
+      await submit();
+      assert.equal(await warnsOnLeave(), true);
+    });
+
+    it("stops warning once a submitted record is downloaded", async () => {
+      await toDocumentation();
+      await toReview();
+      await submitAndDownload();
+      assert.equal(await warnsOnLeave(), false);
+    });
+
+    it("stops warning after starting over", async () => {
+      await toDocumentation();
+      await clickHeader();
+      await page.click(".start-new");
+      await page.waitFor(`Boolean(document.querySelector(".intake-grid"))`);
+      assert.equal(await warnsOnLeave(), false);
+    });
+
+    it("doesn't treat the demo's made-up screening answers as work", async () => {
+      await page.close();
+      demo = true;
+      try {
+        await open(`${address}#documentation`, ".doc-title-input");
+        assert.equal(await warnsOnLeave(), false);
+        await clickHeader();
+        assert.equal(await confirmCount(), 0);
+        assert.equal(await page.has(".start-new"), false);
+      } finally {
+        demo = false;
+      }
+    });
   });
 });

@@ -12,6 +12,8 @@ authors:
     website: "https://www.igiairhub.com/"
 repository-code: "https://github.com/IGIAirhub/ai-use-case-registry"
 url: "https://www.igiairhub.com/ai-use-case-registry/"
+version: "1.0.0"
+date-released: "2026-11-02"
 license:
   - Apache-2.0
   - CC-BY-4.0

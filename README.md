@@ -4,7 +4,7 @@ An adoptable AI use case registry for the gambling sector, from [AiR Hub](https:
 
 Each AI use case goes through a short screening that classifies its potential impact on players into one of three documentation tiers. The registry then asks only for the documentation that tier requires. Your organization runs it on its own infrastructure, and rebrands and adapts it as needed.
 
-**Live demo:** https://kasvegas.github.io/ai-use-case-registry/
+**Live demo:** https://igiairhub.github.io/ai-use-case-registry/
 
 ## How it works
 
@@ -31,14 +31,14 @@ Adopt it at any scale: across an entire organization, within a single department
 ## Quick start
 
 ```bash
-git clone https://github.com/kasvegas/ai-use-case-registry
+git clone https://github.com/IGIAirhub/ai-use-case-registry
 cd ai-use-case-registry
 python3 -m http.server 8000      # or: npx serve .
 ```
 
 Then open http://localhost:8000. The source version needs a web server, because the browser loads the `.jsx` files over HTTP. Opening `index.html` straight from disk won't work.
 
-Prefer not to run anything? Each [release](https://github.com/kasvegas/ai-use-case-registry/releases) includes `ai-use-case-registry.html`, a single file that opens by double-click.
+Prefer not to run anything? Each [release](https://github.com/IGIAirhub/ai-use-case-registry/releases) includes `ai-use-case-registry.html`, a single file that opens by double-click.
 
 ## Make it yours
 

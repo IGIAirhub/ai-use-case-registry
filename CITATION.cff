@@ -10,7 +10,7 @@ abstract: >-
 authors:
   - name: "AiR Hub, International Gaming Institute, University of Nevada, Las Vegas"
     website: "https://www.igiairhub.com/"
-repository-code: "https://github.com/kasvegas/ai-use-case-registry"
+repository-code: "https://github.com/IGIAirhub/ai-use-case-registry"
 url: "https://www.igiairhub.com/registry/"
 license:
   - Apache-2.0

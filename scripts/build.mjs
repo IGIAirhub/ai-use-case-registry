@@ -185,7 +185,7 @@ const notice = [
   inDist("NOTICE") ? distRead("NOTICE") : "",
   inDist("vendor/LICENSE-react.txt") ? `React and React DOM:\n\n${distRead("vendor/LICENSE-react.txt")}` : "",
 ].filter(Boolean).map(comment).join("\n");
-const noticeComment = notice ? `<!--\n${notice.trim()}\n\nSource and licenses: https://github.com/kasvegas/ai-use-case-registry\n-->\n` : "";
+const noticeComment = notice ? `<!--\n${notice.trim()}\n\nSource and licenses: https://github.com/IGIAirhub/ai-use-case-registry\n-->\n` : "";
 
 let single = html
   .replace(/^(﻿?\s*<!DOCTYPE[^>]*>[ \t]*\r?\n?)?/i, (m) => m + noticeComment)
